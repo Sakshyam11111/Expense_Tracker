@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  User, CreditCard, TrendingUp, TrendingDown, Plus, Eye, EyeOff, 
-  ArrowRight, DollarSign, ShoppingBag, Plane, Zap, Home, Car, 
-  Download, BarChart3, LogOut, Menu, X 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  User, CreditCard, TrendingUp, TrendingDown, Plus, Eye, EyeOff,
+  ArrowRight, DollarSign, ShoppingBag, Plane, Zap, Home, Car,
+  Download, BarChart3, LogOut, Menu, X
 } from 'lucide-react';
 import Login from './Login';
 import Signup from './Signup';
@@ -28,7 +28,7 @@ const ExpenseTracker = () => {
     profileImage: null,
     totalBalance: 100900,
     totalIncome: 115200,
-    totalExpenses: 14300
+    totalExpenses: 14300,
   });
 
   const [transactions, setTransactions] = useState([
@@ -47,17 +47,43 @@ const ExpenseTracker = () => {
     { id: 5, source: 'Salary', amount: 12500, date: '12th Dec 2024' },
   ]);
 
+  // Restore authentication state from localStorage on mount
+  useEffect(() => {
+    const storedAuth = localStorage.getItem('isAuthenticated');
+    const storedUserData = localStorage.getItem('userData');
+    if (storedAuth === 'true' && storedUserData) {
+      try {
+        setIsAuthenticated(true);
+        setUserData(JSON.parse(storedUserData));
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userData');
+      }
+    }
+  }, []);
+
+  // Persist authentication state and user data to localStorage
+  useEffect(() => {
+    localStorage.setItem('isAuthenticated', isAuthenticated);
+    if (isAuthenticated) {
+      localStorage.setItem('userData', JSON.stringify(userData));
+    } else {
+      localStorage.removeItem('userData');
+    }
+  }, [isAuthenticated, userData]);
+
   const parseCustomDate = (dateStr) => {
     const cleanDateStr = dateStr.replace(/(st|nd|rd|th)/, '');
     return new Date(cleanDateStr);
   };
 
   const expenseChartData = useMemo(() => {
-    const today = new Date('2025-07-20');
+    const today = new Date('2025-07-21');
     const fourWeeksAgo = new Date(today.getTime() - 28 * 24 * 60 * 60 * 1000);
     const weeks = Array(4).fill(0);
 
-    transactions.forEach(transaction => {
+    transactions.forEach((transaction) => {
       const transactionDate = parseCustomDate(transaction.date);
       if (transactionDate >= fourWeeksAgo && transactionDate <= today) {
         const weekIndex = Math.floor((today - transactionDate) / (7 * 24 * 60 * 60 * 1000));
@@ -71,11 +97,11 @@ const ExpenseTracker = () => {
   }, [transactions]);
 
   const incomeChartData = useMemo(() => {
-    const today = new Date('2025-07-20');
+    const today = new Date('2025-07-21');
     const tenMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 9, 1);
     const months = Array(10).fill(0);
 
-    incomes.forEach(income => {
+    incomes.forEach((income) => {
       const incomeDate = parseCustomDate(income.date);
       if (incomeDate >= tenMonthsAgo && incomeDate <= today && !isNaN(incomeDate)) {
         const monthDiff = (today.getFullYear() - incomeDate.getFullYear()) * 12 + today.getMonth() - incomeDate.getMonth();
@@ -90,11 +116,11 @@ const ExpenseTracker = () => {
 
   const handleLogin = (e, { username, email, profileImage }) => {
     e.preventDefault();
-    setUserData(prev => ({
+    setUserData((prev) => ({
       ...prev,
       name: username,
       email,
-      profileImage
+      profileImage,
     }));
     setIsAuthenticated(true);
   };
@@ -108,8 +134,11 @@ const ExpenseTracker = () => {
       profileImage: null,
       totalBalance: 100900,
       totalIncome: 115200,
-      totalExpenses: 14300
+      totalExpenses: 14300,
     });
+    setIsMobileMenuOpen(false);
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userData');
   };
 
   const addIncome = (incomeData) => {
@@ -117,37 +146,39 @@ const ExpenseTracker = () => {
       id: Date.now(),
       source: incomeData.source,
       amount: parseFloat(incomeData.amount),
-      date: incomeData.date ? new Date(incomeData.date).toLocaleDateString('en-US', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric' 
-      }) : new Date().toLocaleDateString('en-US', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric' 
-      })
+      date: incomeData.date
+        ? new Date(incomeData.date).toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : new Date().toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          }),
     };
-    
-    setIncomes(prev => [newIncome, ...prev]);
-    setUserData(prev => ({
+
+    setIncomes((prev) => [newIncome, ...prev]);
+    setUserData((prev) => ({
       ...prev,
       totalIncome: prev.totalIncome + newIncome.amount,
-      totalBalance: prev.totalBalance + newIncome.amount
+      totalBalance: prev.totalBalance + newIncome.amount,
     }));
     setShowAddIncomeModal(false);
   };
 
   const addExpense = (expenseData) => {
     const expenseIcons = {
-      'Shopping': ShoppingBag,
-      'Travel': Plane,
-      'Bills': Zap,
-      'Transport': Car,
-      'Food': ShoppingBag,
-      'Entertainment': ShoppingBag,
-      'Healthcare': Home,
-      'Education': Home,
-      'Other': Home
+      Shopping: ShoppingBag,
+      Travel: Plane,
+      Bills: Zap,
+      Transport: Car,
+      Food: ShoppingBag,
+      Entertainment: ShoppingBag,
+      Healthcare: Home,
+      Education: Home,
+      Other: Home,
     };
 
     const newExpense = {
@@ -155,47 +186,49 @@ const ExpenseTracker = () => {
       type: 'expense',
       category: expenseData.category,
       amount: parseFloat(expenseData.amount),
-      date: expenseData.date ? new Date(expenseData.date).toLocaleDateString('en-US', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric' 
-      }) : new Date().toLocaleDateString('en-US', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric' 
-      }),
-      icon: expenseIcons[expenseData.category] || Home
+      date: expenseData.date
+        ? new Date(expenseData.date).toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : new Date().toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          }),
+      icon: expenseIcons[expenseData.category] || Home,
     };
-    
-    setTransactions(prev => [newExpense, ...prev]);
-    setUserData(prev => ({
+
+    setTransactions((prev) => [newExpense, ...prev]); // Fixed: Changed newIncome to newExpense
+    setUserData((prev) => ({
       ...prev,
       totalExpenses: prev.totalExpenses + newExpense.amount,
-      totalBalance: prev.totalBalance - newExpense.amount
+      totalBalance: prev.totalBalance - newExpense.amount,
     }));
     setShowAddExpenseModal(false);
   };
 
   const deleteIncome = (incomeId) => {
-    const incomeToDelete = incomes.find(income => income.id === incomeId);
+    const incomeToDelete = incomes.find((income) => income.id === incomeId);
     if (incomeToDelete) {
-      setIncomes(prev => prev.filter(income => income.id !== incomeId));
-      setUserData(prev => ({
+      setIncomes((prev) => prev.filter((income) => income.id !== incomeId));
+      setUserData((prev) => ({
         ...prev,
         totalIncome: prev.totalIncome - incomeToDelete.amount,
-        totalBalance: prev.totalBalance - incomeToDelete.amount
+        totalBalance: prev.totalBalance - incomeToDelete.amount,
       }));
     }
   };
 
   const deleteExpense = (expenseId) => {
-    const expenseToDelete = transactions.find(transaction => transaction.id === expenseId);
+    const expenseToDelete = transactions.find((transaction) => transaction.id === expenseId);
     if (expenseToDelete) {
-      setTransactions(prev => prev.filter(transaction => transaction.id !== expenseId));
-      setUserData(prev => ({
+      setTransactions((prev) => prev.filter((transaction) => transaction.id !== expenseId));
+      setUserData((prev) => ({
         ...prev,
         totalExpenses: prev.totalExpenses - expenseToDelete.amount,
-        totalBalance: prev.totalBalance + expenseToDelete.amount
+        totalBalance: prev.totalBalance + expenseToDelete.amount,
       }));
     }
   };
@@ -222,40 +255,40 @@ const ExpenseTracker = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <div className="hidden md:block w-64 sticky top-0 h-screen" data-aos="fade-right">
-        <Sidebar 
-          currentView={currentView} 
-          setCurrentView={setCurrentView} 
-          userData={userData} 
-          handleLogout={handleLogout} 
+      <div className="hidden md:block w-60 sm:w-64 md:w-80 sticky top-0 h-screen" data-aos="fade-right">
+        <Sidebar
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          userData={userData}
+          handleLogout={handleLogout}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
+          isMobileMenuOpen={isMobileMenuOpen}
         />
       </div>
 
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden" data-aos="fade-right">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="fixed inset-y-0 left-0 w-full h-full z-50">
-            <Sidebar 
-              currentView={currentView} 
-              setCurrentView={setCurrentView} 
-              userData={userData} 
-              handleLogout={handleLogout} 
+        <div className="fixed inset-0 z-40 md:hidden" data-aos="fade-right">
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-y-0 left-0 w-60 sm:w-64 h-screen z-50">
+            <Sidebar
+              currentView={currentView}
+              setCurrentView={setCurrentView}
+              userData={userData}
+              handleLogout={handleLogout}
               setIsMobileMenuOpen={setIsMobileMenuOpen}
+              isMobileMenuOpen={isMobileMenuOpen}
             />
-            <button
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-lg"
-            >
-              <X className="w-5 h-5 text-gray-600" />
-            </button>
           </div>
         </div>
       )}
 
-      <div className="flex-1 p-0 md:p-6">
+      <div className="flex-1 p-3 sm:p-4 md:p-6">
         {currentView === 'dashboard' && (
-          <Dashboard 
+          <Dashboard
             userData={userData}
             transactions={transactions}
             incomes={incomes}
@@ -265,7 +298,7 @@ const ExpenseTracker = () => {
           />
         )}
         {currentView === 'expense' && (
-          <Expenses 
+          <Expenses
             transactions={transactions}
             setShowAddExpenseModal={setShowAddExpenseModal}
             setIsMobileMenuOpen={setIsMobileMenuOpen}
@@ -273,7 +306,7 @@ const ExpenseTracker = () => {
           />
         )}
         {currentView === 'income' && (
-          <Income 
+          <Income
             incomes={incomes}
             incomeChartData={incomeChartData}
             setShowAddIncomeModal={setShowAddIncomeModal}
@@ -281,13 +314,13 @@ const ExpenseTracker = () => {
             deleteIncome={deleteIncome}
           />
         )}
-        
-        <AddIncomeModal 
+
+        <AddIncomeModal
           showAddIncomeModal={showAddIncomeModal}
           setShowAddIncomeModal={setShowAddIncomeModal}
           addIncome={addIncome}
         />
-        <AddExpenseModal 
+        <AddExpenseModal
           showAddExpenseModal={showAddExpenseModal}
           setShowAddExpenseModal={setShowAddExpenseModal}
           addExpense={addExpense}
