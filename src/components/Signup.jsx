@@ -76,7 +76,6 @@ const Signup = ({ setIsLogin, showPassword, setShowPassword, handleLogin }) => {
         <div
           className={`
             bg-white/10 backdrop-blur-xl rounded-3xl p-10 shadow-2xl border border-white/20
-            transform transition-all duration-500 hover:scale-105 hover:shadow-3xl
             ${focusedField ? 'ring-4 ring-white/30' : ''}
           `}
           style={{
