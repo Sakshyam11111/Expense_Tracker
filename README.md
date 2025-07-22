@@ -1,4 +1,4 @@
-**View live (https://expense-tracker-seven-silk.vercel.app/)**
+**[View live](https://expense-tracker-seven-silk.vercel.app/)**
 
 # React + Vite
 
