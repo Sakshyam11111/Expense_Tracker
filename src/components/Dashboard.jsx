@@ -260,11 +260,50 @@ const PieChart = ({ data = {}, totalBalance, totalIncome, totalExpenses }) => {
 // Dashboard component
 const Dashboard = ({ userData, transactions, incomes, setShowAddIncomeModal, setShowAddExpenseModal, setIsMobileMenuOpen }) => {
   const [balanceVisible, setBalanceVisible] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [apiDateTime, setApiDateTime] = useState(null);
+  const [dateTimeError, setDateTimeError] = useState(null);
 
+  // Fetch date and time from OpenWeatherMap API using current location
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const fetchDateTime = async (lat, lon) => {
+      const apiKey = 'beb68caa757def4aad48a4d473795f8a';
+      const baseUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}`;
+
+      try {
+        const response = await fetch(baseUrl);
+        if (!response.ok) {
+          throw new Error('Failed to fetch date and time');
+        }
+        const data = await response.json();
+        const timestamp = data.dt * 1000; // Convert Unix timestamp to milliseconds
+        const timezoneOffset = data.timezone * 1000; // Convert seconds to milliseconds
+        const localTime = new Date(timestamp + timezoneOffset);
+        setApiDateTime(localTime);
+      } catch (error) {
+        setDateTimeError('Could not fetch date and time');
+        console.error(error);
+      }
+    };
+
+    // Get user's current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          fetchDateTime(latitude, longitude);
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          setDateTimeError('Geolocation not available, using default location');
+          // Fallback to Kathmandu, Nepal
+          fetchDateTime(27.7172, 85.3240);
+        }
+      );
+    } else {
+      setDateTimeError('Geolocation not supported, using default location');
+      // Fallback to Kathmandu, Nepal
+      fetchDateTime(27.7172, 85.3240);
+    }
   }, []);
 
   const parseCustomDate = (dateStr) => {
@@ -346,7 +385,11 @@ const Dashboard = ({ userData, transactions, incomes, setShowAddIncomeModal, set
             </div>
             <p className="text-gray-600 flex items-center gap-2 text-xs sm:text-sm md:text-base">
               <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
-              {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {apiDateTime
+                ? apiDateTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
+                ' • ' +
+                apiDateTime.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' })
+                : dateTimeError || 'Fetching date and time...'}
             </p>
           </div>
 
@@ -447,8 +490,8 @@ const Dashboard = ({ userData, transactions, incomes, setShowAddIncomeModal, set
               </div>
             </div>
           </div>
-
         </div>
+
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 sm:p-4 md:p-6 shadow-xl border border-gray-200/50 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1">
             <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6 flex items-center gap-2 sm:gap-3">

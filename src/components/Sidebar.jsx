@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { User, CreditCard, BarChart3, LogOut, X, Settings, Bell, Star, Activity, TrendingUp, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const Sidebar = ({ currentView, setCurrentView, userData, handleLogout, setIsMobileMenuOpen, isMobileMenuOpen }) => {
+const Sidebar = ({ currentView, userData, handleLogout, setIsMobileMenuOpen, isMobileMenuOpen }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showTooltip, setShowTooltip] = useState(null);
+  const navigate = useNavigate();
 
   const sampleUserData = userData || {
     name: 'John Doe',
@@ -23,7 +25,7 @@ const Sidebar = ({ currentView, setCurrentView, userData, handleLogout, setIsMob
       description: 'Overview & Analytics'
     },
     {
-      id: 'expense',
+      id: 'expenses',
       label: 'Expenses',
       icon: CreditCard,
       color: 'from-rose-500 to-red-600',
@@ -62,7 +64,6 @@ const Sidebar = ({ currentView, setCurrentView, userData, handleLogout, setIsMob
         text-white flex flex-col shadow-2xl
         border-r border-gray-700/50
       `}>
-
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-4 -right-4 w-20 sm:w-24 md:w-28 h-20 sm:h-24 md:h-28 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full blur-2xl"></div>
           <div className="absolute top-1/3 -left-4 w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-blue-500/15 to-cyan-500/15 rounded-full blur-xl"></div>
@@ -107,92 +108,59 @@ const Sidebar = ({ currentView, setCurrentView, userData, handleLogout, setIsMob
           </div>
 
           {!isCollapsed && (
-            <div className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 rounded-lg p-2 sm:p-3 md:p-4 backdrop-blur-sm border border-gray-600/30 animate-slideIn">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">Total Balance</p>
-                  <p className="text-sm sm:text-base md:text-lg font-bold text-emerald-400">Rs. {sampleUserData.totalBalance.toLocaleString()}</p>
-                </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-              </div>
-              <div className="mt-1 sm:mt-2 flex items-center gap-1 text-xs text-emerald-400">
-                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>+2.5% this month</span>
-              </div>
+            <div className="mt-2 sm:mt-3 md:mt-4">
+              <p className="text-xs text-gray-400">Balance</p>
+              <p className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                ${sampleUserData.totalBalance.toLocaleString()}
+              </p>
             </div>
           )}
         </div>
 
-        <div className="flex-1 p-2 sm:p-3 md:p-4 space-y-2 relative z-50">
-          <div className="mb-3 sm:mb-4 md:mb-6">
-            {!isCollapsed && (
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">
-                Navigation
-              </p>
-            )}
-
-            {menuItems.map((item, index) => {
+        <div className="relative z-50 flex-1 p-2 sm:p-3 md:p-4 overflow-y-auto">
+          <div className="space-y-1 sm:space-y-2">
+            {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentView === item.id;
 
               return (
                 <div
                   key={item.id}
-                  className="relative"
+                  className="relative group"
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   <button
-                    onClick={() => {
-                      setCurrentView(item.id);
-                      setIsMobileMenuOpen(false);
-                    }}
+                    onClick={() => navigate(`/${item.id}`)}
                     className={`
-                      w-full flex items-center gap-2 sm:gap-3 p-2 sm:p-3 md:p-4 rounded-lg transition-all duration-300 group relative overflow-hidden
-                      ${isActive
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 shadow-md shadow-indigo-500/25 scale-105'
-                        : 'hover:bg-gray-800/50 hover:scale-105 hover:shadow-md'
-                      }
+                      w-full flex items-center gap-2 sm:gap-3 p-2 sm:p-3 md:p-4 rounded-lg transition-all duration-300
+                      ${isActive ? `bg-gradient-to-r ${item.color} text-white shadow-md` : 'hover:bg-gray-800/50'}
+                      hover:scale-105 transform group-hover:shadow-lg relative overflow-hidden
                     `}
-                    style={{ animationDelay: `${index * 100}ms` }}
-                    aria-label={`Navigate to ${item.label}`}
+                    aria-label={item.label}
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-r ${item.color} opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-lg`}></div>
-
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className={`
                       relative z-10 p-1 sm:p-1.5 rounded-lg transition-all duration-300
-                      ${isActive
-                        ? 'bg-white/20 text-white'
-                        : 'bg-gray-700/50 text-gray-400 group-hover:text-white group-hover:bg-gray-600/50'
-                      }
+                      ${isActive ? 'bg-white/20 group-hover:bg-white/30' : 'bg-gray-800/50 group-hover:bg-gray-700/50'}
                     `}>
-                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${hoveredItem === item.id ? 'scale-110 rotate-6' : ''}`} />
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" />
                     </div>
 
                     {!isCollapsed && (
-                      <div className="relative z-10 flex-1 text-left">
-                        <span className={`font-medium text-xs sm:text-sm transition-colors duration-300 ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
-                          {item.label}
-                        </span>
-                        <p className={`text-xs transition-colors duration-300 ${isActive ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`}>
-                          {item.description}
-                        </p>
+                      <div className="relative z-10 flex-1 text-left animate-slideIn">
+                        <span className="font-medium text-xs sm:text-sm">{item.label}</span>
+                        <p className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors duration-300">{item.description}</p>
                       </div>
                     )}
 
-                    {!isCollapsed && (
-                      <ChevronRight className={`w-3 h-3 sm:w-4 sm:h-4 transition-all duration-300 ${isActive ? 'text-white translate-x-1' : 'text-gray-500 group-hover:text-gray-300 group-hover:translate-x-1'}`} />
-                    )}
-
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-white to-gray-300 rounded-r-full"></div>
+                    {!isCollapsed && isActive && (
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-white group-hover:translate-x-1 transition-transform duration-300" />
                     )}
                   </button>
 
-                  {isCollapsed && hoveredItem === item.id && (
-                    <div className="absolute left-full ml-1 sm:ml-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm whitespace-nowrap z-50 shadow-md border border-gray-600">
+                  {hoveredItem === item.id && isCollapsed && (
+                    <div className="absolute left-full ml-1 sm:ml-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm whitespace-nowrap z-50 shadow-md border border-gray-600">
                       {item.label}
                       <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-800 rotate-45 border-l border-b border-gray-600"></div>
                     </div>

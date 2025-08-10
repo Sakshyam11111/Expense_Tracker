@@ -4,6 +4,7 @@ import {
   ArrowRight, DollarSign, ShoppingBag, Plane, Zap, Home, Car,
   Download, BarChart3, LogOut, Menu, X
 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Login from './Login';
 import Signup from './Signup';
 import Sidebar from './Sidebar';
@@ -13,14 +14,17 @@ import Income from './Income';
 import AddIncomeModal from './AddIncomeModal';
 import AddExpenseModal from './AddExpenseModal';
 
-const ExpenseTracker = () => {
+const ExpenseTracker = ({ initialView = 'dashboard' }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(initialView);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [userData, setUserData] = useState({
     name: '',
@@ -46,6 +50,18 @@ const ExpenseTracker = () => {
     { id: 4, source: 'Investment', amount: 3000, date: '10th Dec 2024' },
     { id: 5, source: 'Salary', amount: 12500, date: '12th Dec 2024' },
   ]);
+
+  // Define handleLogin function
+  const handleLogin = (e, { username, email, profileImage }) => {
+    e.preventDefault();
+    setUserData((prev) => ({
+      ...prev,
+      name: username || email, // Use email as fallback if username is not provided
+      email,
+      profileImage,
+    }));
+    setIsAuthenticated(true);
+  };
 
   // Restore authentication state from localStorage on mount
   useEffect(() => {
@@ -73,6 +89,18 @@ const ExpenseTracker = () => {
     }
   }, [isAuthenticated, userData]);
 
+  // Update currentView based on route changes
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/' || path === '/dashboard') {
+      setCurrentView('dashboard');
+    } else if (path === '/expenses') {
+      setCurrentView('expense');
+    } else if (path === '/income') {
+      setCurrentView('income');
+    }
+  }, [location.pathname]);
+
   const parseCustomDate = (dateStr) => {
     const cleanDateStr = dateStr.replace(/(st|nd|rd|th)/, '');
     return new Date(cleanDateStr);
@@ -96,38 +124,8 @@ const ExpenseTracker = () => {
     return weeks;
   }, [transactions]);
 
-  const incomeChartData = useMemo(() => {
-    const today = new Date('2025-07-21');
-    const tenMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 9, 1);
-    const months = Array(10).fill(0);
-
-    incomes.forEach((income) => {
-      const incomeDate = parseCustomDate(income.date);
-      if (incomeDate >= tenMonthsAgo && incomeDate <= today && !isNaN(incomeDate)) {
-        const monthDiff = (today.getFullYear() - incomeDate.getFullYear()) * 12 + today.getMonth() - incomeDate.getMonth();
-        if (monthDiff >= 0 && monthDiff < 10) {
-          months[9 - monthDiff] += income.amount;
-        }
-      }
-    });
-
-    return months;
-  }, [incomes]);
-
-  const handleLogin = (e, { username, email, profileImage }) => {
-    e.preventDefault();
-    setUserData((prev) => ({
-      ...prev,
-      name: username,
-      email,
-      profileImage,
-    }));
-    setIsAuthenticated(true);
-  };
-
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setCurrentView('dashboard');
     setUserData({
       name: '',
       email: '',
@@ -137,29 +135,21 @@ const ExpenseTracker = () => {
       totalExpenses: 14300,
     });
     setIsMobileMenuOpen(false);
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userData');
+    navigate('/');
   };
 
   const addIncome = (incomeData) => {
     const newIncome = {
-      id: Date.now(),
+      id: incomes.length + 1,
       source: incomeData.source,
       amount: parseFloat(incomeData.amount),
-      date: incomeData.date
-        ? new Date(incomeData.date).toLocaleDateString('en-US', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })
-        : new Date().toLocaleDateString('en-US', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          }),
+      date: new Date(incomeData.date).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }).replace(/ /g, ' '),
     };
-
-    setIncomes((prev) => [newIncome, ...prev]);
+    setIncomes((prev) => [...prev, newIncome]);
     setUserData((prev) => ({
       ...prev,
       totalIncome: prev.totalIncome + newIncome.amount,
@@ -169,44 +159,36 @@ const ExpenseTracker = () => {
   };
 
   const addExpense = (expenseData) => {
-    const expenseIcons = {
-      Shopping: ShoppingBag,
-      Travel: Plane,
-      Bills: Zap,
-      Transport: Car,
-      Food: ShoppingBag,
-      Entertainment: ShoppingBag,
-      Healthcare: Home,
-      Education: Home,
-      Other: Home,
-    };
-
     const newExpense = {
-      id: Date.now(),
+      id: transactions.length + 1,
       type: 'expense',
       category: expenseData.category,
       amount: parseFloat(expenseData.amount),
-      date: expenseData.date
-        ? new Date(expenseData.date).toLocaleDateString('en-US', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })
-        : new Date().toLocaleDateString('en-US', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          }),
-      icon: expenseIcons[expenseData.category] || Home,
+      date: new Date(expenseData.date).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }).replace(/ /g, ' '),
+      icon: getIconForCategory(expenseData.category),
     };
-
-    setTransactions((prev) => [newExpense, ...prev]); // Fixed: Changed newIncome to newExpense
+    setTransactions((prev) => [...prev, newExpense]);
     setUserData((prev) => ({
       ...prev,
       totalExpenses: prev.totalExpenses + newExpense.amount,
       totalBalance: prev.totalBalance - newExpense.amount,
     }));
     setShowAddExpenseModal(false);
+  };
+
+  const getIconForCategory = (category) => {
+    const iconMap = {
+      Shopping: ShoppingBag,
+      Travel: Plane,
+      Bills: Zap,
+      'Loan Repayment': Home,
+      Transport: Car,
+    };
+    return iconMap[category] || CreditCard;
   };
 
   const deleteIncome = (incomeId) => {
@@ -308,7 +290,6 @@ const ExpenseTracker = () => {
         {currentView === 'income' && (
           <Income
             incomes={incomes}
-            incomeChartData={incomeChartData}
             setShowAddIncomeModal={setShowAddIncomeModal}
             setIsMobileMenuOpen={setIsMobileMenuOpen}
             deleteIncome={deleteIncome}
